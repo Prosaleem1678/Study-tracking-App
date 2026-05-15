@@ -1,0 +1,456 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>History Revision Progress Tracker</title>
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --card:#ffffff;
+      --text:#172033;
+      --muted:#667085;
+      --line:#e6eaf2;
+      --primary:#2563eb;
+      --primary-2:#1d4ed8;
+      --success:#16a34a;
+      --warning:#f59e0b;
+      --danger:#ef4444;
+      --shadow:0 10px 30px rgba(15,23,42,.08);
+      --radius:22px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      background:linear-gradient(180deg,#eef4ff 0%, var(--bg) 180px, var(--bg) 100%);
+      color:var(--text);
+    }
+    .app{
+      max-width:1200px;
+      margin:0 auto;
+      padding:20px;
+    }
+    .header{
+      display:flex;
+      gap:16px;
+      align-items:flex-start;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      margin-bottom:18px;
+    }
+    .hero{
+      background:rgba(255,255,255,.88);
+      border:1px solid rgba(255,255,255,.7);
+      box-shadow:var(--shadow);
+      border-radius:28px;
+      padding:20px;
+      flex:1 1 520px;
+      backdrop-filter: blur(8px);
+    }
+    .title{
+      margin:0 0 6px;
+      font-size:clamp(24px, 4vw, 34px);
+      line-height:1.1;
+    }
+    .subtitle{
+      margin:0;
+      color:var(--muted);
+      font-size:14px;
+    }
+    .top-metrics{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(120px,1fr));
+      gap:12px;
+      margin-top:16px;
+    }
+    .metric{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:14px;
+      min-height:92px;
+    }
+    .metric .label{font-size:12px;color:var(--muted);margin-bottom:8px}
+    .metric .value{font-size:24px;font-weight:800;letter-spacing:-.02em}
+    .metric .hint{font-size:12px;color:var(--muted);margin-top:4px}
+    .panel{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      margin-bottom:18px;
+    }
+    .tabs{
+      display:flex;
+      gap:8px;
+      padding:10px;
+      border-bottom:1px solid var(--line);
+      background:#fafcff;
+      overflow:auto;
+    }
+    .tab{
+      border:1px solid var(--line);
+      background:white;
+      color:var(--text);
+      padding:12px 16px;
+      border-radius:14px;
+      cursor:pointer;
+      font-weight:700;
+      white-space:nowrap;
+      transition:.15s ease;
+    }
+    .tab.active{
+      background:var(--primary);
+      color:white;
+      border-color:var(--primary);
+      box-shadow:0 8px 18px rgba(37,99,235,.22);
+    }
+    .content{padding:16px}
+    .section{display:none}
+    .section.active{display:block}
+    .grid{
+      display:grid;
+      gap:14px;
+    }
+    .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .grid.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .card{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:20px;
+      padding:16px;
+    }
+    .card h3{margin:0 0 12px;font-size:18px}
+    .muted{color:var(--muted)}
+    .form-row{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:12px;
+    }
+    .form-row.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+    label{display:block;font-size:12px;font-weight:700;color:#344054;margin-bottom:6px}
+    input, textarea, select{
+      width:100%;
+      border:1px solid #d6dbe8;
+      border-radius:14px;
+      padding:12px 13px;
+      font:inherit;
+      background:#fff;
+      color:var(--text);
+      outline:none;
+    }
+    textarea{min-height:92px;resize:vertical}
+    input:focus, textarea:focus, select:focus{border-color:var(--primary); box-shadow:0 0 0 4px rgba(37,99,235,.12)}
+    .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    button{
+      border:none;
+      border-radius:14px;
+      padding:12px 16px;
+      font-weight:800;
+      cursor:pointer;
+      font:inherit;
+    }
+    .btn-primary{background:var(--primary);color:white}
+    .btn-primary:hover{background:var(--primary-2)}
+    .btn-light{background:#eef2ff;color:#1d4ed8}
+    .btn-danger{background:#fee2e2;color:#991b1b}
+    .btn-ghost{background:#f8fafc;color:#334155;border:1px solid var(--line)}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:18px}
+    table{width:100%;border-collapse:collapse;min-width:1000px;background:#fff}
+    th,td{padding:12px 10px;border-bottom:1px solid #eef2f7;text-align:left;vertical-align:top}
+    th{position:sticky;top:0;background:#f8fbff;font-size:12px;color:#475467;text-transform:uppercase;letter-spacing:.03em;z-index:1}
+    tr:hover td{background:#fafcff}
+    .small{font-size:12px;color:var(--muted)}
+    .pill{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:6px 10px;border-radius:999px;background:#eef2ff;color:#1d4ed8;font-size:12px;font-weight:700;
+    }
+    .status-good{background:#dcfce7;color:#166534}
+    .status-mid{background:#fef3c7;color:#92400e}
+    .status-low{background:#fee2e2;color:#991b1b}
+    .schedule-list{display:grid;gap:10px}
+    .schedule-item{
+      display:grid;grid-template-columns:160px 1fr 100px;gap:10px;align-items:center;
+      padding:12px;border:1px solid var(--line);border-radius:16px;background:#fff;
+    }
+    .schedule-item input[type="time"]{padding:10px}
+    .summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .summary-box{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px}
+    .summary-box .k{font-size:12px;color:var(--muted)}
+    .summary-box .v{font-size:22px;font-weight:800;margin-top:8px}
+    .progress{height:12px;border-radius:999px;background:#edf2f7;overflow:hidden}
+    .bar{height:100%;border-radius:999px;background:linear-gradient(90deg,#2563eb,#60a5fa)}
+    .footer-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .helpbox{background:#f8fbff;border:1px dashed #bfd2ff;border-radius:18px;padding:14px}
+    .two-col{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
+    @media (max-width: 980px){
+      .top-metrics,.summary-grid,.grid.cols-2,.grid.cols-3,.grid.cols-4,.form-row,.two-col{grid-template-columns:1fr 1fr}
+      .schedule-item{grid-template-columns:1fr}
+    }
+    @media (max-width: 680px){
+      .top-metrics,.summary-grid,.grid.cols-2,.grid.cols-3,.grid.cols-4,.form-row,.two-col{grid-template-columns:1fr}
+      .app{padding:12px}
+      .content{padding:12px}
+      .hero{padding:16px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div class="hero">
+        <h1 class="title">History Revision Progress Tracker</h1>
+        <p class="subtitle">Single-page tracker with local save, daily logging, weekly/monthly summaries, and schedule setup.</p>
+        <div class="top-metrics">
+          <div class="metric"><div class="label">Today’s Score</div><div class="value" id="todayScore">0</div><div class="hint" id="todayScoreHint">No entry yet</div></div>
+          <div class="metric"><div class="label">This Week</div><div class="value" id="weekScore">0</div><div class="hint">Average daily score</div></div>
+          <div class="metric"><div class="label">This Month</div><div class="value" id="monthScore">0</div><div class="hint">Average daily score</div></div>
+          <div class="metric"><div class="label">Study Streak</div><div class="value" id="streak">0</div><div class="hint">Consecutive study days</div></div>
+        </div>
+      </div>
+    </div><div class="panel">
+  <div class="tabs">
+    <button class="tab active" data-tab="daily">Daily Tracker</button>
+    <button class="tab" data-tab="weekly">Weekly Summary</button>
+    <button class="tab" data-tab="monthly">Monthly Summary</button>
+    <button class="tab" data-tab="setup">Setup</button>
+  </div>
+
+  <div class="content">
+    <section class="section active" id="daily">
+      <div class="grid cols-2">
+        <div class="card">
+          <h3>Add / Update Daily Entry</h3>
+          <div class="form-row two">
+            <div><label>Date</label><input type="date" id="date"></div>
+            <div><label>Day</label><input type="text" id="day" placeholder="Auto from date"></div>
+          </div>
+          <div class="form-row">
+            <div><label>Week No</label><input type="number" id="weekNo" min="1" placeholder="Auto"></div>
+            <div><label>Month No</label><input type="number" id="monthNo" min="1" placeholder="Auto"></div>
+            <div><label>Planned Study Minutes</label><input type="number" id="plannedStudy" min="0" step="1"></div>
+            <div><label>Actual Study Minutes</label><input type="number" id="actualStudy" min="0" step="1"></div>
+          </div>
+          <div class="form-row">
+            <div><label>Break Minutes</label><input type="number" id="breakMinutes" min="0" step="1"></div>
+            <div><label>Tasks Planned</label><input type="number" id="tasksPlanned" min="0" step="1"></div>
+            <div><label>Tasks Done</label><input type="number" id="tasksDone" min="0" step="1"></div>
+            <div><label>Time Efficiency %</label><input type="number" id="timeEfficiency" min="0" max="100" step="0.1" placeholder="Auto"></div>
+          </div>
+          <div class="form-row two">
+            <div><label>Topics / Chapter</label><input type="text" id="topics" placeholder="e.g. Ancient India: Harappan Civilisation"></div>
+            <div><label>Daily Efficiency Score</label><input type="number" id="dailyScore" min="0" max="100" step="0.1" placeholder="Auto"></div>
+          </div>
+          <div class="form-row two">
+            <div><label>Notes</label><textarea id="notes" placeholder="What went well, what to improve..."></textarea></div>
+            <div><label>Tasks Planned / Done Preview</label><div class="helpbox"><div class="small">Your score is auto-calculated from study time, task completion, and time efficiency. You can still override it manually if needed.</div><div style="margin-top:12px" class="progress"><div class="bar" id="scoreBar" style="width:0%"></div></div><div style="margin-top:10px"><span class="pill" id="scorePill">Score: 0</span></div></div></div>
+          </div>
+          <div class="btnrow">
+            <button class="btn-primary" id="saveBtn">Save Entry</button>
+            <button class="btn-light" id="newBtn">New Blank Entry</button>
+            <button class="btn-ghost" id="fillTodayBtn">Load Today</button>
+            <button class="btn-danger" id="deleteBtn">Delete Selected</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Daily Log</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th><th>Day</th><th>Week</th><th>Month</th><th>Planned</th><th>Actual</th><th>Break</th><th>Topics</th><th>Tasks</th><th>Efficiency</th><th>Score</th><th>Notes</th><th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="dailyTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="weekly">
+      <div class="card">
+        <h3>Weekly Summary</h3>
+        <div class="summary-grid">
+          <div class="summary-box"><div class="k">Week with most study</div><div class="v" id="bestWeek">-</div></div>
+          <div class="summary-box"><div class="k">Average weekly score</div><div class="v" id="avgWeekScore">0</div></div>
+          <div class="summary-box"><div class="k">Best week score</div><div class="v" id="maxWeekScore">0</div></div>
+          <div class="summary-box"><div class="k">Total study minutes</div><div class="v" id="totalStudyWeek">0</div></div>
+        </div>
+        <div style="height:14px"></div>
+        <div class="table-wrap">
+          <table style="min-width:900px">
+            <thead>
+              <tr><th>Week</th><th>Study Days</th><th>Planned Minutes</th><th>Actual Minutes</th><th>Tasks Done</th><th>Avg Time Efficiency</th><th>Avg Score</th><th>Completion</th></tr>
+            </thead>
+            <tbody id="weeklyTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="monthly">
+      <div class="card">
+        <h3>Monthly Summary</h3>
+        <div class="summary-grid">
+          <div class="summary-box"><div class="k">Best month</div><div class="v" id="bestMonth">-</div></div>
+          <div class="summary-box"><div class="k">Average monthly score</div><div class="v" id="avgMonthScore">0</div></div>
+          <div class="summary-box"><div class="k">Best month score</div><div class="v" id="maxMonthScore">0</div></div>
+          <div class="summary-box"><div class="k">Total study minutes</div><div class="v" id="totalStudyMonth">0</div></div>
+        </div>
+        <div style="height:14px"></div>
+        <div class="table-wrap">
+          <table style="min-width:900px">
+            <thead>
+              <tr><th>Month</th><th>Study Days</th><th>Planned Minutes</th><th>Actual Minutes</th><th>Tasks Done</th><th>Avg Time Efficiency</th><th>Avg Score</th><th>Completion</th></tr>
+            </thead>
+            <tbody id="monthlyTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="setup">
+      <div class="grid cols-2">
+        <div class="card">
+          <h3>Targets</h3>
+          <div class="form-row two">
+            <div><label>Planned Study / Day (min)</label><input type="number" id="targetStudy" min="0"></div>
+            <div><label>Planned Breaks / Day (min)</label><input type="number" id="targetBreaks" min="0"></div>
+          </div>
+          <div class="form-row two">
+            <div><label>Suggested Daily Score Target</label><input type="number" id="targetScore" min="0" max="100"></div>
+            <div><label>Streak Goal (days)</label><input type="number" id="targetStreak" min="0"></div>
+          </div>
+          <h3 style="margin-top:8px">Study Schedule</h3>
+          <div class="schedule-list" id="scheduleList"></div>
+          <div class="btnrow">
+            <button class="btn-primary" id="addScheduleBtn">Add Schedule Row</button>
+            <button class="btn-light" id="saveSetupBtn">Save Setup</button>
+            <button class="btn-danger" id="resetBtn">Reset All Data</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>How to use</h3>
+          <div class="helpbox">
+            <p class="muted" style="margin-top:0">1. Open <b>Daily Tracker</b> and fill one row for each day.</p>
+            <p class="muted">2. The app saves everything in your browser using <b>LocalStorage</b>.</p>
+            <p class="muted">3. Weekly and Monthly summaries update automatically.</p>
+            <p class="muted" style="margin-bottom:0">4. Use <b>Setup</b> to change targets and your study schedule.</p>
+          </div>
+          <div style="height:14px"></div>
+          <div class="card" style="background:#fafcff">
+            <h3 style="margin-top:0">Saved data notes</h3>
+            <div class="small">This page works offline after the first load. To move your data to another device, use browser export tools or copy the LocalStorage data from developer tools.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+  </div><script>
+(() => {
+  const STORAGE_KEY = 'history_revision_progress_tracker_v1';
+
+  const defaultData = {
+    entries: [],
+    setup: {
+      targets: { plannedStudy: 210, plannedBreaks: 15, scoreTarget: 80, streakGoal: 7 },
+      schedule: [
+        { start: '10:00', end: '10:50', label: 'Study' },
+        { start: '10:50', end: '10:55', label: 'Break' },
+        { start: '10:55', end: '11:45', label: 'Study' },
+        { start: '11:45', end: '11:50', label: 'Break' },
+        { start: '11:50', end: '12:40', label: 'Study' },
+        { start: '12:40', end: '12:55', label: 'Break' },
+        { start: '12:55', end: '1:45', label: 'Study' },
+      ]
+    }
+  };
+
+  const els = {
+    date: document.getElementById('date'),
+    day: document.getElementById('day'),
+    weekNo: document.getElementById('weekNo'),
+    monthNo: document.getElementById('monthNo'),
+    plannedStudy: document.getElementById('plannedStudy'),
+    actualStudy: document.getElementById('actualStudy'),
+    breakMinutes: document.getElementById('breakMinutes'),
+    tasksPlanned: document.getElementById('tasksPlanned'),
+    tasksDone: document.getElementById('tasksDone'),
+    topics: document.getElementById('topics'),
+    notes: document.getElementById('notes'),
+    timeEfficiency: document.getElementById('timeEfficiency'),
+    dailyScore: document.getElementById('dailyScore'),
+    saveBtn: document.getElementById('saveBtn'),
+    newBtn: document.getElementById('newBtn'),
+    fillTodayBtn: document.getElementById('fillTodayBtn'),
+    deleteBtn: document.getElementById('deleteBtn'),
+    dailyTable: document.getElementById('dailyTable'),
+    weeklyTable: document.getElementById('weeklyTable'),
+    monthlyTable: document.getElementById('monthlyTable'),
+    todayScore: document.getElementById('todayScore'),
+    todayScoreHint: document.getElementById('todayScoreHint'),
+    weekScore: document.getElementById('weekScore'),
+    monthScore: document.getElementById('monthScore'),
+    streak: document.getElementById('streak'),
+    bestWeek: document.getElementById('bestWeek'),
+    avgWeekScore: document.getElementById('avgWeekScore'),
+    maxWeekScore: document.getElementById('maxWeekScore'),
+    totalStudyWeek: document.getElementById('totalStudyWeek'),
+    bestMonth: document.getElementById('bestMonth'),
+    avgMonthScore: document.getElementById('avgMonthScore'),
+    maxMonthScore: document.getElementById('maxMonthScore'),
+    totalStudyMonth: document.getElementById('totalStudyMonth'),
+    targetStudy: document.getElementById('targetStudy'),
+    targetBreaks: document.getElementById('targetBreaks'),
+    targetScore: document.getElementById('targetScore'),
+    targetStreak: document.getElementById('targetStreak'),
+    scheduleList: document.getElementById('scheduleList'),
+    addScheduleBtn: document.getElementById('addScheduleBtn'),
+    saveSetupBtn: document.getElementById('saveSetupBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    scoreBar: document.getElementById('scoreBar'),
+    scorePill: document.getElementById('scorePill'),
+  };
+
+  let state = loadState();
+  let selectedDate = null;
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return structuredClone(defaultData);
+      const parsed = JSON.parse(raw);
+      return {
+        entries: Array.isArray(parsed.entries) ? parsed.entries : [],
+        setup: {
+          targets: { ...defaultData.setup.targets, ...(parsed.setup?.targets || {}) },
+          schedule: Array.isArray(parsed.setup?.schedule) && parsed.setup.schedule.length ? parsed.setup.schedule : structuredClone(defaultData.setup.schedule)
+        }
+      };
+    }catch(e){
+      return structuredClone(defaultData);
+    }
+  }
+
+  function saveState(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function clamp(n, min=0, max=100){ return Math.min(max, Math.max(min, Number.isFinite(n) ? n : 0)); }
+  function toNum(v){ const n = Number(v); return Number.isFinite(n) ? n : 0; }
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function dateStr(d){ return d.toISOString().slice(0,10); }
+  function todayISO(){ const d = new Date(); const tzOffset = d.getTimezoneOffset() * 60000; return new Date(Date.now() - tzOffset).toISOString().slice(0,10); }
+  function dayName(iso){
+    if(!iso) return '';
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString(undefined,{ weekday:'long' });
+  }
+  function weekNumber(iso){
+    if(!iso)
